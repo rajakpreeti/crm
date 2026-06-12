@@ -41,12 +41,15 @@ export default function TicketDetailView({ ticketId, onNavigate }: TicketDetailV
     if (!isQuiet) setLoading(true);
     try {
       const response = await axios.get<TicketDetail>(`/api/tickets/${ticketId}`);
+      if (response.data && (response.data as any).success === false) {
+        throw new Error((response.data as any).message || 'Failed to retrieve ticket info');
+      }
       setTicket(response.data);
       // Synchronize input fields with fetched data
       setSelectedStatus(response.data.status);
     } catch (err: any) {
       console.error(err);
-      const errMsg = err.response?.data?.error || err.message || 'Failed to retrieve ticket info';
+      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to retrieve ticket info';
       toast.error(errMsg);
     } finally {
       if (!isQuiet) setLoading(false);
@@ -225,12 +228,12 @@ export default function TicketDetailView({ ticketId, onNavigate }: TicketDetailV
                 Case History & Staff Notes
               </h2>
               <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-150">
-                {ticket.notes.length} Notes Left
+                {ticket.notes && Array.isArray(ticket.notes) ? ticket.notes.length : 0} Notes Left
               </span>
             </div>
 
             {/* Scrollable list of past comments */}
-            {ticket.notes.length > 0 ? (
+            {ticket.notes && Array.isArray(ticket.notes) && ticket.notes.length > 0 ? (
               <div className="space-y-4">
                 {ticket.notes.map((note, index) => (
                   <div key={index} className="p-4 bg-slate-50 rounded-xl border border-slate-200/70 hover:border-slate-250 transition-colors space-y-2">

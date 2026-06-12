@@ -41,7 +41,15 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
     try {
       const url = `/api/tickets?status=${statusFilter}&search=${encodeURIComponent(searchQuery)}`;
       const response = await axios.get<SimplifiedTicket[]>(url);
-      setTickets(response.data);
+      const data = response.data;
+      
+      if (!Array.isArray(data)) {
+        setTickets([]);
+        setDbMode('');
+        return;
+      }
+
+      setTickets(data);
       
       // Capture the database status header from headers
       const modeHeader = response.headers['x-database-mode'] || '';
@@ -52,7 +60,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
       }
     } catch (err: any) {
       console.error(err);
-      const errorMessage = err.response?.data?.error || err.message || 'System failed to load tickets';
+      setTickets([]);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'System failed to load tickets';
       toast.error(errorMessage, { id: 'fetch-err' });
     } finally {
       setLoading(false);

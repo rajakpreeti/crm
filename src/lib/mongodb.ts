@@ -1,19 +1,5 @@
 import mongoose from 'mongoose';
 
-// Read, trim, and strip any surrounding quotes (single or double) from the MONGODB_URI
-let rawUri = process.env.MONGODB_URI || '';
-
-// Clean up surrounding quotes from copy-pasting into configuration panels or .env files
-let cleanedUri = rawUri.trim();
-if (
-  (cleanedUri.startsWith('"') && cleanedUri.endsWith('"')) ||
-  (cleanedUri.startsWith("'") && cleanedUri.endsWith("'"))
-) {
-  cleanedUri = cleanedUri.substring(1, cleanedUri.length - 1).trim();
-}
-
-const MONGODB_URI = cleanedUri;
-
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -35,9 +21,21 @@ export async function connectToDatabase() {
     return cached.conn;
   }
 
-  if (!MONGODB_URI || MONGODB_URI.includes('MY_MONGODB_URI')) {
+  // Dynamically resolve environmental variable on call rather than module-load time
+  const rawUri = process.env.MONGODB_URI || '';
+  let cleanedUri = rawUri.trim();
+  if (
+    (cleanedUri.startsWith('"') && cleanedUri.endsWith('"')) ||
+    (cleanedUri.startsWith("'") && cleanedUri.endsWith("'"))
+  ) {
+    cleanedUri = cleanedUri.substring(1, cleanedUri.length - 1).trim();
+  }
+
+  const MONGODB_URI = cleanedUri;
+
+  if (!MONGODB_URI || MONGODB_URI.trim() === '' || MONGODB_URI.includes('MY_MONGODB_URI') || MONGODB_URI.includes('your_username')) {
     throw new Error(
-      'MONGODB_URI environment variable is missing or set to placeholder. Please configure it in your Secrets / Environment panel.'
+      'MONGODB_URI environment variable is missing, empty, or set to placeholder. Please configure it in your Vercel Environment Variables or AI Studio panel.'
     );
   }
 

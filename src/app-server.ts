@@ -108,7 +108,10 @@ app.post('/api/tickets', async (req: Request, res: Response) => {
     const { customerName, customerEmail, subject, description } = req.body;
 
     if (!customerName || !customerEmail || !subject || !description) {
-      return res.status(400).json({ error: 'All fields are required: customerName, customerEmail, subject, description.' });
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required: customerName, customerEmail, subject, and description.'
+      });
     }
 
     const dbStatus = await checkDatabaseAvailable();
@@ -179,7 +182,10 @@ app.post('/api/tickets', async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     console.error('Error creating ticket:', error);
-    return res.status(500).json({ error: error.message || 'Server error occurred while creating ticket.' });
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error occurred while creating ticket.'
+    });
   }
 });
 
@@ -196,7 +202,8 @@ app.get('/api/tickets', async (req: Request, res: Response) => {
         query.status = status;
       }
       if (search && search.trim() !== '') {
-        const searchRegex = new RegExp(search.trim(), 'i');
+        const escapedSearch = search.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const searchRegex = new RegExp(escapedSearch, 'i');
         query.$or = [
           { ticketId: searchRegex },
           { customerName: searchRegex },
@@ -210,12 +217,20 @@ app.get('/api/tickets', async (req: Request, res: Response) => {
         .select('ticketId customerName subject status createdAt')
         .sort({ createdAt: -1 });
 
-      return res.json(tickets);
+      const output = tickets.map(t => ({
+        ticketId: t.ticketId,
+        customerName: t.customerName,
+        subject: t.subject,
+        status: t.status,
+        createdAt: t.createdAt
+      }));
+
+      return res.json(output);
     } else {
       // --- IN-MEMORY MOCK ROUTE ---
       let filtered = [...inMemoryTickets];
 
-      // Filter status
+      // Filter status (Do not filter if status is "All")
       if (status && status !== 'All') {
         filtered = filtered.filter(t => t.status === status);
       }
@@ -232,7 +247,7 @@ app.get('/api/tickets', async (req: Request, res: Response) => {
         );
       }
 
-      // Return trimmed items (only what table needs)
+      // Return exactly the fields required by CRM Spec
       const output = filtered.map(t => ({
         ticketId: t.ticketId,
         customerName: t.customerName,
@@ -245,7 +260,10 @@ app.get('/api/tickets', async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     console.error('Error listing tickets:', error);
-    return res.status(500).json({ error: error.message || 'Server error occurred while fetching tickets.' });
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error occurred while fetching tickets.'
+    });
   }
 });
 
@@ -259,7 +277,10 @@ app.get('/api/tickets/:ticketId', async (req: Request, res: Response) => {
       // --- REAL MONGO ROUTE ---
       const ticket = await Ticket.findOne({ ticketId });
       if (!ticket) {
-        return res.status(404).json({ error: `Ticket with ID ${ticketId} not found.` });
+        return res.status(404).json({
+          success: false,
+          message: `Ticket with ID ${ticketId} not found.`
+        });
       }
 
       return res.json({
@@ -277,13 +298,19 @@ app.get('/api/tickets/:ticketId', async (req: Request, res: Response) => {
       // --- IN-MEMORY MOCK ROUTE ---
       const ticket = inMemoryTickets.find(t => t.ticketId === ticketId);
       if (!ticket) {
-        return res.status(404).json({ error: `Ticket with ID ${ticketId} not found.` });
+        return res.status(404).json({
+          success: false,
+          message: `Ticket with ID ${ticketId} not found.`
+        });
       }
       return res.json(ticket);
     }
   } catch (error: any) {
     console.error('Error fetching ticket details:', error);
-    return res.status(500).json({ error: error.message || 'Server error occurred while retrieving ticket.' });
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error occurred while retrieving ticket.'
+    });
   }
 });
 
@@ -298,12 +325,18 @@ app.put('/api/tickets/:ticketId', async (req: Request, res: Response) => {
       // --- REAL MONGO ROUTE ---
       const ticket = await Ticket.findOne({ ticketId });
       if (!ticket) {
-        return res.status(404).json({ error: `Ticket with ID ${ticketId} not found.` });
+        return res.status(404).json({
+          success: false,
+          message: `Ticket with ID ${ticketId} not found.`
+        });
       }
 
       if (status) {
         if (!['Open', 'In Progress', 'Closed'].includes(status)) {
-          return res.status(400).json({ error: 'Invalid status. Status must be Open, In Progress, or Closed.' });
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid status. Status must be Open, In Progress, or Closed.'
+          });
         }
         ticket.status = status;
       }
@@ -325,12 +358,18 @@ app.put('/api/tickets/:ticketId', async (req: Request, res: Response) => {
       // --- IN-MEMORY MOCK ROUTE ---
       const ticket = inMemoryTickets.find(t => t.ticketId === ticketId);
       if (!ticket) {
-        return res.status(404).json({ error: `Ticket with ID ${ticketId} not found.` });
+        return res.status(404).json({
+          success: false,
+          message: `Ticket with ID ${ticketId} not found.`
+        });
       }
 
       if (status) {
         if (!['Open', 'In Progress', 'Closed'].includes(status)) {
-          return res.status(400).json({ error: 'Invalid status. Status must be Open, In Progress, or Closed.' });
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid status. Status must be Open, In Progress, or Closed.'
+          });
         }
         ticket.status = status;
       }
@@ -351,7 +390,10 @@ app.put('/api/tickets/:ticketId', async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     console.error('Error updating ticket:', error);
-    return res.status(500).json({ error: error.message || 'Server error occurred while updating ticket.' });
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error occurred while updating ticket.'
+    });
   }
 });
 
