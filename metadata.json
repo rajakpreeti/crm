@@ -1,0 +1,6 @@
+{
+  "name": "Customer Support Ticketing CRM",
+  "description": "Full-stack Customer Support Ticketing CRM with auto-sequencing ticket identifiers, quick status dashboards, text search queries, and historical staff diagnostic note logs persistent on MongoDB Atlas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
